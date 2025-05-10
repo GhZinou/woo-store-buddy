@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Outlet, Navigate } from "react-router-dom";
 import { Menu, Bell } from "lucide-react";

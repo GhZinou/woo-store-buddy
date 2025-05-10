@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { authService, userService } from "@/services/api";
@@ -8,6 +7,7 @@ type User = {
   email: string;
   name?: string;
   storeUrl?: string;
+  trialExpirationDate?: string; // Added this property to fix the TypeScript error
 };
 
 type AuthContextType = {
@@ -85,7 +85,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      const { user, token } = await authService.register(email, password);
+      const { user, token } = await authService.register(email, password, name);
       
       setUser(user);
       localStorage.setItem("woostore_token", token);
