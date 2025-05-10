@@ -22,7 +22,7 @@ const Signup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   
-  const { signup, isAuthenticated } = useAuth();
+  const { signup, isAuthenticated, connectStore } = useAuth();
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -76,10 +76,15 @@ const Signup = () => {
     setIsSubmitting(true);
     
     try {
-      const { name, email, password, storeUrl, consumerKey, consumerSecret } = formData;
-      await signup(email, password, name, storeUrl, consumerKey, consumerSecret);
+      const { name, email, password } = formData;
+      
+      // First, create the user account
+      await signup(email, password, name);
+      
+      // Then connect the store
+      await connectStore(storeUrl, consumerKey, consumerSecret);
     } catch (error: any) {
-      setError(error.message || "Signup failed. Please try again.");
+      setError(error.response?.data?.message || "Signup failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

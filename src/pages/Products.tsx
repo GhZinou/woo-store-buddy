@@ -1,130 +1,105 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { productsService } from "@/services/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 type Product = {
   id: number;
   name: string;
   sku: string;
   price: string;
-  regularPrice: string;
-  stockStatus: string;
-  stockQuantity: number;
-  categories: string[];
+  regular_price: string;
+  stock_status: string;
+  stock_quantity: number;
+  categories: Array<{id: number, name: string}>;
 };
 
 const Products = () => {
-  // Mock products data
-  const mockProducts: Product[] = [
-    {
-      id: 1,
-      name: "Wireless Earbuds",
-      sku: "WE-001",
-      price: "$49.99",
-      regularPrice: "$59.99",
-      stockStatus: "instock",
-      stockQuantity: 25,
-      categories: ["Electronics", "Audio"]
-    },
-    {
-      id: 2,
-      name: "Smart Watch",
-      sku: "SW-002",
-      price: "$199.99",
-      regularPrice: "$249.99",
-      stockStatus: "instock",
-      stockQuantity: 12,
-      categories: ["Electronics", "Wearables"]
-    },
-    {
-      id: 3,
-      name: "Bluetooth Speaker",
-      sku: "BS-003",
-      price: "$79.99",
-      regularPrice: "$99.99",
-      stockStatus: "instock",
-      stockQuantity: 18,
-      categories: ["Electronics", "Audio"]
-    },
-    {
-      id: 4,
-      name: "Fitness Tracker",
-      sku: "FT-004",
-      price: "$59.99",
-      regularPrice: "$79.99",
-      stockStatus: "instock",
-      stockQuantity: 30,
-      categories: ["Electronics", "Fitness"]
-    },
-    {
-      id: 5,
-      name: "Smart Home Hub",
-      sku: "SH-005",
-      price: "$129.99",
-      regularPrice: "$149.99",
-      stockStatus: "outofstock",
-      stockQuantity: 0,
-      categories: ["Electronics", "Smart Home"]
-    },
-    {
-      id: 6,
-      name: "Wireless Charger",
-      sku: "WC-006",
-      price: "$29.99",
-      regularPrice: "$39.99",
-      stockStatus: "instock",
-      stockQuantity: 45,
-      categories: ["Electronics", "Accessories"]
-    },
-    {
-      id: 7,
-      name: "Bluetooth Headphones",
-      sku: "BH-007",
-      price: "$89.99",
-      regularPrice: "$99.99",
-      stockStatus: "lowstock",
-      stockQuantity: 3,
-      categories: ["Electronics", "Audio"]
-    }
-  ];
-  
-  const [products] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState("");
+  const queryClient = useQueryClient();
   
-  const filteredProducts = products.filter(product => 
+  // Fetch products from API
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const response = await productsService.getProducts();
+      return response.products || [];
+    }
+  });
+  
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: (productId: string) => productsService.deleteProduct(productId),
+    onSuccess: () => {
+      // Invalidate and refetch products after deletion
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('Product deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product');
+    }
+  });
+  
+  // Handle product deletion
+  const handleDeleteProduct = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      deleteProductMutation.mutate(id.toString());
+    }
+  };
+  
+  // Filter products by search term
+  const filteredProducts = data?.filter((product: Product) => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    product.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
   
+  // Helper function to get stock status display
   const getStockStatusClass = (status: string) => {
     switch (status) {
       case "instock":
         return "bg-green-100 text-green-800";
       case "outofstock":
         return "bg-red-100 text-red-800";
-      case "lowstock":
+      case "onbackorder":
         return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
   
+  // Helper function to get stock status label
   const getStockStatusLabel = (status: string) => {
     switch (status) {
       case "instock":
         return "In Stock";
       case "outofstock":
         return "Out of Stock";
-      case "lowstock":
-        return "Low Stock";
+      case "onbackorder":
+        return "On Backorder";
       default:
         return status;
     }
   };
+  
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Products</h1>
+          <p className="text-gray-500">There was an error loading your products.</p>
+          <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['products'] })}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -185,24 +160,24 @@ const Products = () => {
                       <td className="px-4 py-4 text-sm">{product.sku}</td>
                       <td className="px-4 py-4 text-sm">
                         <div className="font-medium">{product.price}</div>
-                        {product.regularPrice !== product.price && (
-                          <div className="text-gray-500 line-through text-xs">{product.regularPrice}</div>
+                        {product.regular_price !== product.price && (
+                          <div className="text-gray-500 line-through text-xs">{product.regular_price}</div>
                         )}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col">
-                          <span className={`px-2 py-1 rounded-full text-xs inline-block w-fit ${getStockStatusClass(product.stockStatus)}`}>
-                            {getStockStatusLabel(product.stockStatus)}
+                          <span className={`px-2 py-1 rounded-full text-xs inline-block w-fit ${getStockStatusClass(product.stock_status)}`}>
+                            {getStockStatusLabel(product.stock_status)}
                           </span>
                           <span className="text-xs text-gray-500 mt-1">
-                            {product.stockQuantity} units
+                            {product.stock_quantity} units
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-1">
                           {product.categories.map((category, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">{category}</Badge>
+                            <Badge key={i} variant="outline" className="text-xs">{category.name}</Badge>
                           ))}
                         </div>
                       </td>
@@ -231,7 +206,7 @@ const Products = () => {
           
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-gray-500">
-              Showing {filteredProducts.length} of {products.length} products
+              Showing {filteredProducts.length} of {data?.length} products
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>

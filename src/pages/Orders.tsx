@@ -1,115 +1,58 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ordersService } from "@/services/api";
 
 type Order = {
-  id: string;
-  customer: string;
-  email: string;
-  date: string;
-  total: string;
+  id: number;
+  number: string;
   status: string;
-  paymentMethod: string;
-  items: number;
+  date_created: string;
+  total: string;
+  billing: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  payment_method_title: string;
+  line_items: Array<any>;
 };
 
 const Orders = () => {
-  // Mock orders data
-  const mockOrders: Order[] = [
-    {
-      id: "#1234",
-      customer: "John Doe",
-      email: "john@example.com",
-      date: "2023-05-10",
-      total: "$59.99",
-      status: "completed",
-      paymentMethod: "Credit Card",
-      items: 2
-    },
-    {
-      id: "#1235",
-      customer: "Jane Smith",
-      email: "jane@example.com",
-      date: "2023-05-09",
-      total: "$125.00",
-      status: "processing",
-      paymentMethod: "PayPal",
-      items: 3
-    },
-    {
-      id: "#1236",
-      customer: "Mike Johnson",
-      email: "mike@example.com",
-      date: "2023-05-08",
-      total: "$85.50",
-      status: "completed",
-      paymentMethod: "Credit Card",
-      items: 1
-    },
-    {
-      id: "#1237",
-      customer: "Sarah Williams",
-      email: "sarah@example.com",
-      date: "2023-05-07",
-      total: "$210.99",
-      status: "pending",
-      paymentMethod: "Bank Transfer",
-      items: 5
-    },
-    {
-      id: "#1238",
-      customer: "David Brown",
-      email: "david@example.com",
-      date: "2023-05-06",
-      total: "$45.75",
-      status: "on-hold",
-      paymentMethod: "Credit Card",
-      items: 2
-    },
-    {
-      id: "#1239",
-      customer: "Emily Davis",
-      email: "emily@example.com",
-      date: "2023-05-05",
-      total: "$199.99",
-      status: "completed",
-      paymentMethod: "PayPal",
-      items: 4
-    },
-    {
-      id: "#1240",
-      customer: "Robert Wilson",
-      email: "robert@example.com",
-      date: "2023-05-04",
-      total: "$67.25",
-      status: "refunded",
-      paymentMethod: "Credit Card",
-      items: 2
-    },
-    {
-      id: "#1241",
-      customer: "Lisa Miller",
-      email: "lisa@example.com",
-      date: "2023-05-03",
-      total: "$32.50",
-      status: "cancelled",
-      paymentMethod: "PayPal",
-      items: 1
-    }
-  ];
-  
-  const [orders] = useState<Order[]>(mockOrders);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterParams, setFilterParams] = useState({});
   
-  const filteredOrders = orders.filter(order => 
-    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Fetch orders from API
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['orders', filterParams],
+    queryFn: async () => {
+      const response = await ordersService.getOrders(filterParams);
+      return response.orders || [];
+    }
+  });
   
+  // Filter orders by search term
+  const filteredOrders = data?.filter((order: Order) => {
+    const searchString = searchTerm.toLowerCase();
+    const orderNumber = order.number.toLowerCase();
+    const customerName = `${order.billing.first_name} ${order.billing.last_name}`.toLowerCase();
+    const customerEmail = order.billing.email.toLowerCase();
+    
+    return orderNumber.includes(searchString) || 
+           customerName.includes(searchString) || 
+           customerEmail.includes(searchString);
+  }) || [];
+  
+  // Helper function to format a date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+  
+  // Helper function to get order status class
   const getOrderStatusClass = (status: string) => {
     switch (status) {
       case "completed":
@@ -117,17 +60,28 @@ const Orders = () => {
       case "processing":
         return "bg-blue-100 text-blue-800";
       case "pending":
-        return "bg-yellow-100 text-yellow-800";
       case "on-hold":
-        return "bg-orange-100 text-orange-800";
+        return "bg-yellow-100 text-yellow-800";
       case "refunded":
         return "bg-purple-100 text-purple-800";
       case "cancelled":
+      case "failed":
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
+  
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Orders</h1>
+          <p className="text-gray-500">There was an error loading your orders.</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -177,20 +131,20 @@ const Orders = () => {
                 {filteredOrders.length > 0 ? (
                   filteredOrders.map((order) => (
                     <tr key={order.id} className="border-b border-gray-200 dark:border-gray-700">
-                      <td className="px-4 py-4 font-medium">{order.id}</td>
+                      <td className="px-4 py-4 font-medium">{order.number}</td>
                       <td className="px-4 py-4">
-                        <div>{order.customer}</div>
-                        <div className="text-xs text-gray-500">{order.email}</div>
+                        <div>{order.billing.first_name} {order.billing.last_name}</div>
+                        <div className="text-xs text-gray-500">{order.billing.email}</div>
                       </td>
-                      <td className="px-4 py-4 text-sm">{order.date}</td>
+                      <td className="px-4 py-4 text-sm">{formatDate(order.date_created)}</td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs capitalize ${getOrderStatusClass(order.status)}`}>
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-sm">{order.paymentMethod}</td>
+                      <td className="px-4 py-4 text-sm">{order.payment_method_title}</td>
                       <td className="px-4 py-4 font-medium">{order.total}</td>
-                      <td className="px-4 py-4 text-center">{order.items}</td>
+                      <td className="px-4 py-4 text-center">{order.line_items.length}</td>
                     </tr>
                   ))
                 ) : (
@@ -206,7 +160,7 @@ const Orders = () => {
           
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-gray-500">
-              Showing {filteredOrders.length} of {orders.length} orders
+              Showing {filteredOrders.length} of {data?.length} orders
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>

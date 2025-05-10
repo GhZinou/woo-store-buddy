@@ -29,7 +29,7 @@ const Login = () => {
     try {
       await login(email, password);
     } catch (error: any) {
-      setError(error.message || "Login failed. Please try again.");
+      setError(error.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
