@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, Link } from "react-router-dom";
 import { Menu, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AppContext";
@@ -43,7 +44,7 @@ const DashboardLayout = () => {
       <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       
       <div className={`transition-all duration-300 ${
-        isSidebarOpen ? "lg:ml-64" : "lg:ml-20"
+        isSidebarOpen ? "lg:ml-64" : "lg:ml-64"
       }`}>
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-border sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-2 h-16">
@@ -69,12 +70,12 @@ const DashboardLayout = () => {
                 <Bell className="h-5 w-5" />
               </Button>
               
-              <div className="flex items-center">
+              <Link to="/profile" className="flex items-center hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 rounded-full bg-brand-orange flex items-center justify-center text-white font-medium">
                   {user?.name?.charAt(0) || "U"}
                 </div>
                 <span className="ml-2 font-medium hidden md:block">{user?.name}</span>
-              </div>
+              </Link>
             </div>
           </div>
         </header>

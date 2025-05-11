@@ -44,22 +44,16 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }: SidebarProps) => {
       
       <aside 
         className={`fixed top-0 left-0 z-30 h-screen bg-white dark:bg-gray-900 shadow-lg transition-all duration-300 ease-in-out
-          ${isSidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full lg:translate-x-0 lg:w-20"} 
+          ${isSidebarOpen ? "w-64 translate-x-0" : "w-64 -translate-x-full lg:translate-x-0 lg:w-64"} 
           flex flex-col border-r border-border`}
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
-          {isSidebarOpen || !window.matchMedia("(min-width: 1024px)").matches ? (
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-md bg-brand-orange flex items-center justify-center text-white font-bold text-lg">
-                W
-              </span>
-              <h1 className="font-bold text-xl">WooStore</h1>
-            </div>
-          ) : (
-            <span className="w-10 h-10 mx-auto rounded-md bg-brand-orange flex items-center justify-center text-white font-bold text-lg">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-md bg-brand-orange flex items-center justify-center text-white font-bold text-lg">
               W
             </span>
-          )}
+            <h1 className="font-bold text-xl">WooStore</h1>
+          </div>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -81,14 +75,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }: SidebarProps) => {
                       "bg-brand-orange text-white" : 
                       "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }
-                    ${!isSidebarOpen && window.matchMedia("(min-width: 1024px)").matches ? "justify-center" : ""}
                   `}
                 >
                   <div className="flex items-center">
                     {item.icon}
-                    {(isSidebarOpen || !window.matchMedia("(min-width: 1024px)").matches) && (
-                      <span className="ml-3 font-medium">{item.name}</span>
-                    )}
+                    <span className="ml-3 font-medium">{item.name}</span>
                   </div>
                 </Link>
               </li>
@@ -99,14 +90,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar }: SidebarProps) => {
         <div className="p-4 border-t border-border">
           <Button 
             variant="outline" 
-            className={`w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800
-              ${!isSidebarOpen && window.matchMedia("(min-width: 1024px)").matches ? "justify-center px-0" : ""}`}
+            className="w-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={logout}
           >
             <LogOut className="h-5 w-5" />
-            {(isSidebarOpen || !window.matchMedia("(min-width: 1024px)").matches) && (
-              <span className="ml-2">Logout</span>
-            )}
+            <span className="ml-2">Logout</span>
           </Button>
         </div>
       </aside>

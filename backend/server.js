@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth');
 const productsRoutes = require('./routes/products');
 const ordersRoutes = require('./routes/orders');
 const userRoutes = require('./routes/user');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Import database
 const { connectToDatabase } = require('./config/database');
@@ -42,6 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -1,8 +1,10 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { toast } from "sonner";
 import { authService, userService } from "@/services/api";
 
-type User = {
+// Define User type
+export type User = {
   id: string;
   email: string;
   name?: string;
@@ -16,16 +18,16 @@ type AuthContextType = {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
-  connectStore: (storeUrl: string, consumerKey: string, consumerSecret: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 };
 
-const AppContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
-  const context = useContext(AppContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AppProvider");
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -34,35 +36,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Check for existing session on mount
+  // Check if user is already logged in when app loads
   useEffect(() => {
-    const checkAuth = async () => {
+    const token = localStorage.getItem("woostore_token");
+    const storedUser = localStorage.getItem("woostore_user");
+    
+    if (token && storedUser) {
       try {
-        const token = localStorage.getItem("woostore_token");
-        
-        if (token) {
-          const storedUser = localStorage.getItem("woostore_user");
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            // If we have a token but no user, fetch user profile
-            const { user: profileUser } = await userService.getProfile();
-            setUser(profileUser);
-            localStorage.setItem("woostore_user", JSON.stringify(profileUser));
-          }
-        }
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
       } catch (error) {
-        console.error("Auth check failed:", error);
-        // Clear invalid session
+        console.error("Failed to parse stored user:", error);
         localStorage.removeItem("woostore_token");
         localStorage.removeItem("woostore_user");
-      } finally {
-        setIsLoading(false);
       }
-    };
+    }
     
-    checkAuth();
+    setIsLoading(false);
   }, []);
+  
+  const refreshUser = async () => {
+    try {
+      const { user } = await userService.getProfile();
+      setUser(user);
+      localStorage.setItem("woostore_user", JSON.stringify(user));
+    } catch (error) {
+      console.error("Failed to refresh user profile:", error);
+    }
+  };
   
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -73,9 +74,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("woostore_token", token);
       localStorage.setItem("woostore_user", JSON.stringify(user));
       
-      toast.success("Login successful!");
+      toast.success("Logged in successfully");
     } catch (error) {
-      // Error is handled by API interceptor
+      console.error("Login failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -91,38 +92,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("woostore_token", token);
       localStorage.setItem("woostore_user", JSON.stringify(user));
       
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully");
     } catch (error) {
-      // Error is handled by API interceptor
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const connectStore = async (storeUrl: string, consumerKey: string, consumerSecret: string) => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const { storeUrl: connectedStoreUrl } = await authService.connectStore(
-        user.id,
-        storeUrl,
-        consumerKey,
-        consumerSecret
-      );
-      
-      const updatedUser = {
-        ...user,
-        storeUrl: connectedStoreUrl
-      };
-      
-      setUser(updatedUser);
-      localStorage.setItem("woostore_user", JSON.stringify(updatedUser));
-      
-      toast.success("Store connected successfully!");
-    } catch (error) {
-      // Error is handled by API interceptor
+      console.error("Signup failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -133,7 +105,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem("woostore_token");
     localStorage.removeItem("woostore_user");
-    toast.info("You've been logged out.");
+    toast.success("Logged out successfully");
   };
   
   const value = {
@@ -142,9 +114,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     login,
     signup,
-    connectStore,
-    logout
+    logout,
+    refreshUser
   };
   
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+export default AuthContext;
