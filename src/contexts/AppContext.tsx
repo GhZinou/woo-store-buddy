@@ -20,6 +20,7 @@ type AuthContextType = {
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  connectStore: (storeUrl: string, consumerKey: string, consumerSecret: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -101,6 +102,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  const connectStore = async (storeUrl: string, consumerKey: string, consumerSecret: string) => {
+    setIsLoading(true);
+    try {
+      if (!user) {
+        throw new Error("User must be logged in to connect a store");
+      }
+      
+      await authService.connectStore(user.id, storeUrl, consumerKey, consumerSecret);
+      
+      // Refresh user data to get updated store information
+      await refreshUser();
+      
+      toast.success("Store connected successfully");
+    } catch (error) {
+      console.error("Store connection failed:", error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const logout = () => {
     setUser(null);
     localStorage.removeItem("woostore_token");
@@ -115,7 +137,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     login,
     signup,
     logout,
-    refreshUser
+    refreshUser,
+    connectStore
   };
   
   return (
