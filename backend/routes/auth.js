@@ -10,9 +10,9 @@ const router = express.Router();
 // Register a new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, name } = req.body; // Added name
     
-    if (!email || !password) {
+    if (!email || !password) { // Name can be optional for now, but frontend sends it
       return res.status(400).json({
         success: false,
         message: 'Email and password are required'
@@ -56,10 +56,10 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // Create new user
+    // Create new user - Added name to query and params
     const [result] = await connection.execute(
-      'INSERT INTO users (email, password) VALUES (?, ?)',
-      [email, hashedPassword]
+      'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
+      [email, hashedPassword, name || null] // Save name, or null if not provided
     );
     
     // Generate JWT token
@@ -72,9 +72,10 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      user: {
+      user: { // Added name to user object
         id: result.insertId,
-        email
+        email,
+        name: name || null 
       },
       token
     });
@@ -101,8 +102,9 @@ router.post('/login', async (req, res) => {
     
     // Find user in database
     const connection = getConnection();
+    // Fetch name as well to include in the response user object
     const [users] = await connection.execute(
-      'SELECT id, email, password, store_url FROM users WHERE email = ?',
+      'SELECT id, email, password, store_url, name FROM users WHERE email = ?', // Added name
       [email]
     );
     
@@ -137,6 +139,7 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name, // Added name
         storeUrl: user.store_url
       },
       token
