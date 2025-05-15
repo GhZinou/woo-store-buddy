@@ -1,11 +1,9 @@
 
 import React, { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AppContext";
+import AuthLayout from "@/components/auth/AuthLayout";
+import SignupForm from "@/components/auth/SignupForm";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -55,118 +53,48 @@ const Signup = () => {
     }
     
     setIsSubmitting(true);
+    setError(""); // Clear previous errors before new submission
     
     try {
       const { name, email, password } = formData;
       await signup(email, password, name);
-      // connectStore call removed as per requirements
-    } catch (error: any) {
-      setError(error.response?.data?.message || "Signup failed. Please try again.");
+      // If signup is successful, AppContext will set isAuthenticated to true, triggering navigation
+    } catch (err: any) {
+      // Assuming error structure from useAuth or API might be { response: { data: { message: "..." } } }
+      // Or a direct error object with a message property
+      const errorMessage = err.response?.data?.message || err.message || "Signup failed. Please try again.";
+      setError(errorMessage);
+      console.error("Signup Page Error:", err); // Log the full error for debugging
     } finally {
       setIsSubmitting(false);
     }
   };
   
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" replace />;
   }
   
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="flex items-center mb-8">
-        <div className="w-10 h-10 rounded-md bg-brand-orange flex items-center justify-center text-white font-bold text-lg mr-3">
-          W
-        </div>
-        <h1 className="text-2xl font-bold">WooStore Buddy</h1>
-      </div>
-      
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">Create Your Account</CardTitle>
-          <CardDescription>
-            Enter your personal details to get started.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4 text-sm">{error}</div>}
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                placeholder="Your name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Min. 8 characters"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full bg-brand-orange hover:bg-brand-orange-dark"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating Account...
-                </div>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Already have an account?{" "}
-            <Link to="/login" className="text-brand-orange hover:underline">
-              Sign In
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+    <AuthLayout
+      title="Create Your Account"
+      description="Enter your personal details to get started."
+      error={error}
+      footerContent={
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Already have an account?{" "}
+          <Link to="/login" className="text-brand-orange hover:underline">
+            Sign In
+          </Link>
+        </p>
+      }
+    >
+      <SignupForm
+        formData={formData}
+        handleChange={handleChange}
+        handleSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+      />
+    </AuthLayout>
   );
 };
 
