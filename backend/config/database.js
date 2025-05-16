@@ -20,7 +20,7 @@ async function connectToDatabase() {
     connection = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL database');
 
-    // Create tables if they don't exist
+    // Create tables if they don't exist and update schema
     await initDatabase();
 
     return connection;
@@ -30,15 +30,16 @@ async function connectToDatabase() {
   }
 }
 
-// Initialize database with required tables
+// Initialize database with required tables and ensure schema is up-to-date
 async function initDatabase() {
   try {
-    // Create users table if it doesn't exist
+    // Create users table if it doesn't exist, now including the 'name' column
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NULL,  -- Added name column
         store_url VARCHAR(255),
         ck TEXT,
         cs TEXT,
@@ -48,9 +49,22 @@ async function initDatabase() {
       )
     `);
 
-    console.log('Database initialized successfully');
+    // Check if 'name' column exists and add it if it doesn't (for existing tables)
+    const [columns] = await connection.execute(
+      `SELECT COLUMN_NAME
+       FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME = 'name'`,
+      [dbConfig.database]
+    );
+
+    if (columns.length === 0) {
+      console.log("Adding 'name' column to existing 'users' table.");
+      await connection.execute('ALTER TABLE users ADD COLUMN name VARCHAR(255) NULL AFTER password');
+    }
+
+    console.log('Database initialized/updated successfully');
   } catch (error) {
-    console.error('Database initialization failed:', error);
+    console.error('Database initialization/update failed:', error);
     throw error;
   }
 }
@@ -67,3 +81,4 @@ module.exports = {
   connectToDatabase,
   getConnection,
 };
+
